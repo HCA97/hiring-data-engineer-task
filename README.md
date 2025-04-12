@@ -79,7 +79,7 @@ Please provide the following:
 3. **KPI Queries**: SQL queries to calculate the following metrics:
    - Click-Through Rate (CTR) by campaign
    - Daily impressions and clicks
-   - Anything else you might find itneresting
+   - Anything else you might find interesting
 4. **Documentation**: A README explaining your design decisions and how to run your solution
 
 ## Evaluation Criteria
