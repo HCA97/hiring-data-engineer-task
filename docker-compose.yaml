@@ -3,7 +3,9 @@ services:
   # PostgreSQL
   # -------------------------------------
   postgres:
-    image: postgres:17
+    build:
+      context: .
+      dockerfile: PostgresqlDockerfile
     container_name: psql_source
     environment:
       POSTGRES_USER: postgres
@@ -46,12 +48,20 @@ services:
     ports:
       - "8123:8123"
       - "9000:9000"
+    environment:
+      - CLICKHOUSE_PASSWORD=value
+    depends_on:
+      flyway:
+        condition: service_completed_successfully
     volumes:
       - clickhouse_data:/var/lib/clickhouse
+      - ./clickhouse_init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
       interval: 5s
       retries: 5
+    links:
+      - postgres:postgres
 
   # -------------------------------------
   # Flyway Migrations
@@ -68,6 +78,23 @@ services:
       - ./migrations/:/flyway/sql
     environment:
       FLYWAY_CONNECT_RETRIES: 10
+  # ERROR: No JDBC driver found to handle jdbc:clickhouse://clickhouse:8123/default. See <link> for troubleshooting
+  # It seems like by default Flyway does not include the ClickHouse JDBC driver. To much work to get it working.
+  # # -------------------------------------
+  # # Flyway Migrations for ClickHouse
+  # # -------------------------------------
+  # flyway-clickhouse:
+  #   image: flyway/flyway
+  #   container_name: ch_migrations
+  #   depends_on:
+  #     clickhouse:
+  #       condition: service_healthy
+  #       restart: true
+  #     flyway:
+  #       condition: service_completed_successfully
+  #   command: -url=jdbc:clickhouse://clickhouse:8123/default -user=default -password=value -locations=filesystem:/flyway/sql/clickhouse migrate
+  #   volumes:
+  #     - ./clickhouse-migrations/:/flyway/sql/clickhouse
 
 volumes:
   postgres_data:

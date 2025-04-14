@@ -1,0 +1,16 @@
+# Ref: https://stackoverflow.com/questions/61582682/installing-and-using-pg-cron-extension-on-postgres-running-inside-of-docker-cont
+# Ref: https://clickhouse.com/docs/integrations/postgresql#1-in-postgresql
+FROM postgres:17
+RUN apt-get update && \
+    apt-get -y install postgresql-17-cron && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN echo "shared_preload_libraries = 'pg_cron'" > /etc/postgresql-custom.conf && \
+    echo "cron.database_name = 'postgres'" >> /etc/postgresql-custom.conf && \
+    echo "listen_addresses = '*'" >> /etc/postgresql-custom.conf && \
+    echo "max_replication_slots = 10" >> /etc/postgresql-custom.conf && \
+    echo "wal_level = logical" >> /etc/postgresql-custom.conf
+
+
+CMD ["postgres", "-c", "config_file=/etc/postgresql-custom.conf"]

@@ -55,13 +55,13 @@ A data generator is provided to populate the source PostgreSQL database:
 
 ```bash
 # Generate a complete batch of test data
-uv run python main.py batch --advertisers 5 --campaigns 3 --impressions 1000 --ctr 0.08
+uv run python main.py batch --advertisers 10 --campaigns 5 --impressions 1000 --ctr 0.08
 # Add a single advertiser
 uv run python main.py advertisers --count 1
 # Add campaigns for an advertiser
-uv run python main.py campaigns --advertiser-id 1 --count 2
+uv run python main.py campaigns --advertiser-id 6 --count 2
 # Add impressions for a campaign
-uv run python main.py impressions --campaign-id 1 --count 500
+uv run python main.py impressions --campaign-id 8 --count 500
 # Add clicks for a campaign (based on existing impressions)
 uv run python main.py clicks --campaign-id 1 --ratio 0.12
 # View current data statistics
