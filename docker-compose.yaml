@@ -3,9 +3,7 @@ services:
   # PostgreSQL
   # -------------------------------------
   postgres:
-    build:
-      context: .
-      dockerfile: PostgresqlDockerfile
+    image: postgres:17
     container_name: psql_source
     environment:
       POSTGRES_USER: postgres
