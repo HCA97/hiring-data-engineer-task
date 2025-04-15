@@ -48,18 +48,48 @@ services:
       - "9000:9000"
     environment:
       - CLICKHOUSE_PASSWORD=value
+      # - PG_HOST=postgres
+      # - PG_DB=postgres
+      # - PG_USER=postgres
+      # - PG_PASS=postgres
     depends_on:
       flyway:
         condition: service_completed_successfully
     volumes:
       - clickhouse_data:/var/lib/clickhouse
-      - ./clickhouse_init.sql:/docker-entrypoint-initdb.d/init.sql
+      # this doesn't work some reason https://hub.docker.com/r/clickhouse/clickhouse-server
+      # - ./clickhouse_init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
       interval: 5s
       retries: 5
     links:
       - postgres:postgres
+
+  python_sync:
+    build:
+      context: .
+      dockerfile: Dockerfile.sync
+    container_name: python_sync
+    depends_on:
+      postgres:
+        condition: service_healthy
+        restart: true
+      clickhouse:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ./clickhouse_init.sql:/clickhouse_init.sql
+    environment:
+      - CLICKHOUSE_HOST=clickhouse
+      - CLICKHOUSE_PORT=8123
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=value
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - SLEEP_INTERVAL=10
 
   # -------------------------------------
   # Flyway Migrations
