@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS default.campaign
 ) ENGINE = MergeTree()
 ORDER BY (id);
 
-CREATE TABLE IF NOT EXISTS default.impressions
+CREATE TABLE IF NOT EXISTS default.impressions_dump
 (
     id UInt32,
     campaign_id UInt32 NULL,
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS default.impressions
 ORDER BY (id)
 PARTITION BY toDate(created_at);
 
-CREATE TABLE IF NOT EXISTS default.clicks
+CREATE TABLE IF NOT EXISTS default.clicks_dump
 (
     id UInt32,
     campaign_id UInt32 NULL,
@@ -38,85 +38,26 @@ CREATE TABLE IF NOT EXISTS default.clicks
 ) ENGINE = MergeTree()
 ORDER BY (id)
 PARTITION BY toDate(created_at);
-
-
--- advertiser view
-CREATE VIEW IF NOT EXISTS default.latest_advertiser AS
-SELECT
-    id,
-    name,
-    updated_at,
-    created_at
-FROM (
-    SELECT
-        id,
-        name,
-        updated_at,
-        created_at,
-        ROW_NUMBER() OVER (PARTITION BY id ORDER BY created_at, updated_at DESC) AS rn
-    FROM default.advertiser
-) AS sub
-WHERE rn = 1;
-
--- campaing view
-CREATE VIEW IF NOT EXISTS default.latest_campaign AS
-SELECT
-    id,
-    name,
-    bid,
-    budget,
-    start_date,
-    end_date,
-    advertiser_id,
-    updated_at,
-    created_at
-FROM (
-    SELECT
-	    id,
-	    name,
-	    bid,
-	    budget,
-	    start_date,
-	    end_date,
-	    advertiser_id,
-	    updated_at,
-	    created_at,
-        ROW_NUMBER() OVER (PARTITION BY id ORDER BY created_at, updated_at DESC) AS rn
-    FROM default.campaign
-) AS sub
-WHERE rn = 1;
 
 
 -- impression view
 
-CREATE VIEW IF NOT EXISTS default.latest_impressions AS
+CREATE OR REPLACE VIEW default.impressions AS
 SELECT
-    id,
-	campaign_id,
-	created_at
-FROM (
-    SELECT
-	    id,
-	    campaign_id,
-	    created_at,
-        ROW_NUMBER() OVER (PARTITION BY id ORDER BY created_at DESC) AS rn
-    FROM default.impressions
-) AS sub
-WHERE rn = 1;
+    i.id as id,
+    i.campaign_id as campaign_id,
+    i.created_at as created_at
+FROM default.campaign ca
+JOIN impressions_dump i ON ca.id = i.campaign_id
+ORDER BY i.id;
 
 -- clicks view
 
-CREATE VIEW IF NOT EXISTS default.latest_clicks AS
+CREATE OR REPLACE VIEW default.clicks AS
 SELECT
-    id,
-	campaign_id,
-	created_at
-FROM (
-    SELECT
-	    id,
-	    campaign_id,
-	    created_at,
-        ROW_NUMBER() OVER (PARTITION BY id ORDER BY created_at DESC) AS rn
-    FROM default.clicks
-) AS sub
-WHERE rn = 1;
+    c.id as id,
+    c.campaign_id as campaign_id,
+    c.created_at as created_at
+FROM default.campaign ca
+JOIN clicks_dump c ON ca.id = c.campaign_id
+ORDER BY c.id;
