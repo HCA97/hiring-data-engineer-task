@@ -63,8 +63,6 @@ services:
       test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
       interval: 5s
       retries: 5
-    links:
-      - postgres:postgres
 
   python_sync:
     build:
