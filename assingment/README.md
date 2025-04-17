@@ -11,6 +11,7 @@ PostgreSQL ──(Python Sync Job)──> ClickHouse
 * **PostgreSQL:** Stores the source data for `advertisers`, `campaigns`, `clicks`, and `impressions`
 * **Python Sync Job:** Periodically dumps data to Clickhouse from PostgreSQL using `postgresql` Table Function
 * **ClickHouse:** Calculate KPI Queries (CTR, dailiy impressions)
+    * Following [Combining multiple source tables into a single target table](https://clickhouse.com/docs/guides/developer/cascading-materialized-views#combining-multiple-source-tables-to-single-target-table)
 
 ## Data Transfer Flow
 
@@ -18,7 +19,8 @@ PostgreSQL ──(Python Sync Job)──> ClickHouse
 
 **Handling CRUD operations:** 
 * For small tables like `advertiser` and `campaign`, we perform full loads, so handling inserts, updates and deletes is not a problem.
-* For larger tables like `clicks` and `impressions`, we only handle inserts (there are no updates for these tables). To handle deletes (e.g., when a campaign is removed from the source database), we join with the `campaign` table in our views. This ensures we only retain impressions and clicks associated with valid campaign IDs. 
+* For larger tables like `clicks` and `impressions`, we only insert new data (assuming they will be not updated). Deletes aren’t handled directly, but since we always join with `campaign`, removed campaigns get filtered out. Additionally, we aggregate `clicks` and `impressions` in a materialized view (`daily_overview`) to enable efficient querying.
+
 
 ## Simple Testing
 
@@ -69,15 +71,14 @@ PostgreSQL ──(Python Sync Job)──> ClickHouse
 2. Check if all the data is there;
 
     ```bash
-    docker exec -it ch_analytics clickhouse-client "SELECT
-    COUNT(distinct ca.id) AS total_campaign,
-    COUNT(distinct a.id) AS total_advertiser,
-    COUNT(distinct i.id) AS total_impressions,
-    COUNT(distinct c.id) AS total_clicks
+    docker exec -it ch_analytics clickhouse-client "select 
+        count(distinct ca.id) as total_campaign,
+        count(distinct a.id) as total_advertiser,
+        sum(do.impressions) as total_impressions,
+        sum(do.clicks) as total_clicks
     FROM campaign ca
     JOIN advertiser a on a.id = ca.advertiser_id
-    JOIN impressions i ON ca.id = i.campaign_id
-    JOIN clicks c ON ca.id = c.campaign_id 
+    LEFT JOIN daily_overview do on do.campaign_id = ca.id
     FORMAT PrettyCompact;"
     ```
 
@@ -135,14 +136,12 @@ PostgreSQL ──(Python Sync Job)──> ClickHouse
     **Result:**
     ```bash
        ┌─total_impressions─┬─total_clicks─┐
-    1. │            10500 │         800 │
+    1. │            10500  │         800  │
        └───────────────────┴──────────────┘
    ```
 
 ## Future Work
 
 1. Replace Python scripts with user-defined functions scheduled via cron jobs.
-2. Improve data architecture by using materialized views instead of regular views.
-   * Example: [Combining multiple source tables into a single target table](https://clickhouse.com/docs/guides/developer/cascading-materialized-views#combining-multiple-source-tables-to-single-target-table)
 3. Handle updates on the `campaign` table efficiently. This table can grow, if we count historical data.
 4. Implement automated integration tests using Python. These should replicate our current manual tests, but in a more automated and repeatable way.

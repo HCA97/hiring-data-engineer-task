@@ -46,18 +46,18 @@ INSERT_QUERIES = {
     """,
     # the `created_at` is not `now()` but some random date, pff
     "clicks": """
-        INSERT INTO default.clicks_dump
+        INSERT INTO default.clicks
         SELECT id, campaign_id, created_at
         FROM postgresql('{PG_HOST}:{PG_PORT}', '{PG_DATABASE}', 'clicks', {PG_USER}, {PG_PASSWORD})
-        WHERE  id > (SELECT MAX(id) FROM default.clicks_dump)
+        WHERE  id > (SELECT MAX(id) FROM default.clicks)
         ORDER BY id ASC
         LIMIT {MAX_ROWS};
     """,
     "impressions": """
-        INSERT INTO default.impressions_dump
+        INSERT INTO default.impressions
         SELECT id, campaign_id, created_at      
         FROM postgresql('{PG_HOST}:{PG_PORT}', '{PG_DATABASE}', 'impressions', {PG_USER}, {PG_PASSWORD})
-        WHERE  id > (SELECT MAX(id) FROM default.impressions_dump)
+        WHERE  id > (SELECT MAX(id) FROM default.impressions)
         ORDER BY id ASC
         LIMIT {MAX_ROWS};
     """,
