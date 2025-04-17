@@ -1,6 +1,7 @@
 import os
 import logging
 import time
+import argparse
 import clickhouse_connect
 from clickhouse_connect.driver.client import Client
 
@@ -48,7 +49,7 @@ INSERT_QUERIES = {
         INSERT INTO default.clicks_dump
         SELECT id, campaign_id, created_at
         FROM postgresql('{PG_HOST}:{PG_PORT}', '{PG_DATABASE}', 'clicks', {PG_USER}, {PG_PASSWORD})
-        WHERE  id > (SELECT COALESCE(MAX(id), 0) FROM default.clicks_dump)
+        WHERE  id > (SELECT MAX(id) FROM default.clicks_dump)
         ORDER BY id ASC
         LIMIT {MAX_ROWS};
     """,
@@ -56,7 +57,7 @@ INSERT_QUERIES = {
         INSERT INTO default.impressions_dump
         SELECT id, campaign_id, created_at      
         FROM postgresql('{PG_HOST}:{PG_PORT}', '{PG_DATABASE}', 'impressions', {PG_USER}, {PG_PASSWORD})
-        WHERE  id > (SELECT COALESCE(MAX(id), 0) FROM default.impressions_dump)
+        WHERE  id > (SELECT MAX(id) FROM default.impressions_dump)
         ORDER BY id ASC
         LIMIT {MAX_ROWS};
     """,
@@ -110,6 +111,12 @@ def run_sync_job(client: Client):
 
 def main():
     """Main function to set up and run the scheduler."""
+
+    parser = argparse.ArgumentParser(description="ClickHouse Sync Scheduler")
+    parser.add_argument("--run-once", action="store_true", help="Run the sync job once and exit")
+    args = parser.parse_args()
+
+
     logging.info("Initializing ClickHouse sync scheduler")
     client = clickhouse_connect.get_client(**CLICKHOUSE_CONFIG)
     if not client:
@@ -127,6 +134,8 @@ def main():
     while True:
         try:
             run_sync_job(client)
+            if args.run_once:
+                break
             time.sleep(SLEEP_INTERVAL)
         except KeyboardInterrupt:
             logging.info("Scheduler interrupted by user")

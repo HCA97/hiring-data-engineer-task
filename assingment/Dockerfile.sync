@@ -2,7 +2,7 @@ FROM python:3.13-slim-bullseye
 
 RUN pip install --no-cache-dir clickhouse-connect==0.8.17
 
-COPY data_sync.py /data_sync.py
+COPY assingment/data_sync.py /data_sync.py
 
 # run the script
 CMD ["python", "/data_sync.py"]
